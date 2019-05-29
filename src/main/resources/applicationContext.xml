@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--包扫描-->
+    <context:component-scan base-package="com.kelo">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <!--=============================================整合MyBatis================================================-->
+    
+    <!--引入外部配置文件-->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" id="configurer">
+        <property name="location" value="classpath:jdbcConfig.properties"></property>
+    </bean>
+
+    <!--配置数据源-->
+    <bean class="com.mchange.v2.c3p0.ComboPooledDataSource" id="dataSource">
+        <property name="driverClass" value="${jdbc.driver}"></property>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+
+    <!--配置SqlSessionFactory-->
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory">
+        <!--指定mybatis全局配置文件的位置-->
+        <property name="configLocation" value="classpath:SqlMapConfig.xml"></property>
+
+        <property name="dataSource" ref="dataSource"></property>
+
+        <!--指定mapper文件位置-->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+
+    </bean>
+
+    <!--配置扫描器，将MyBatis的接口实现加入到IOC容器-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer" id="mapperScanner">
+        <property name="basePackage" value="com.kelo.crud.dao"></property>
+    </bean>
+
+    <!--=============================================事务管理================================================-->
+    <!--事务管理器-->
+    <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" id="transactionManager">
+        <!--控制住数据源中的事务-->
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <!--配置事务增强-->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <!--所有方法都是事务方法-->
+            <tx:method name="*"/>
+            <!--get开头的方法-->
+            <tx:method name="get*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <!--开启基于注解的事务-->
+    <aop:config>
+        <!--切入点表达式-->
+        <aop:pointcut id="txPoint" expression="execution(* com.kelo.crud.service..*(..))"/>
+        <!--事务增强-->
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPoint"></aop:advisor>
+    </aop:config>
+
+    <!--配置一个可以执行批量操作的SqlSession-->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"></constructor-arg>
+        <!--批量的-->
+        <constructor-arg name="executorType" value="BATCH"></constructor-arg>
+    </bean>
+
+</beans>
