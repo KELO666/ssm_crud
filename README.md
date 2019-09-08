@@ -1,5 +1,5 @@
 # ssm_crud
-###功能
+### 功能
 
 1.分页
 
@@ -9,7 +9,7 @@
 
 4.Restful的URI
 
-###技术点
+### 技术点
 
 1.基础框架-ssm（SpringMVC+Spring+MyBatis）
 
